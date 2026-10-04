@@ -21,7 +21,7 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Force Create Package & Config Files
+      - name: Create Package & Capacitor Config
         run: |
           cat << 'EOF' > package.json
           {
@@ -45,27 +45,30 @@ jobs:
           }
           EOF
 
-      - name: Prepare Web Directory
+      - name: Copy All Web Assets Correctly
         run: |
           mkdir -p www
-          cp -r *.html *.js *.css public/ assets/ dist/* www/ 2>/dev/null || true
+          # Project ke saare HTML, CSS, JS aur sub-folders copy karo
+          cp -r * www/ 2>/dev/null || true
+          
+          # Agar index.html kisi inner folder me ho toh use root www me le aao
           if [ ! -f www/index.html ]; then
-            echo "<html><body><h1>Dulish Gaming App</h1></body></html>" > www/index.html
+            find www/ -maxdepth 3 -name "index.html" -exec cp {} www/ \;
           fi
 
-      - name: Install Capacitor & Add Android
+      - name: Build Android App
         run: |
           npm install --legacy-peer-deps
           npx cap add android || true
-          npx cap sync android || true
+          npx cap copy android
 
-      - name: Build Android APK
+      - name: Build APK File
         run: |
           cd android
           chmod +x gradlew
           ./gradlew assembleDebug
 
-      - name: Upload APK Artifact
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: release-apk
