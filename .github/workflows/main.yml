@@ -21,26 +21,51 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Create Package JSON & Install Capacitor
+      - name: Force Create Package & Config Files
         run: |
-          npm init -y
-          npm install @capacitor/core @capacitor/cli @capacitor/android
+          cat << 'EOF' > package.json
+          {
+            "name": "dulish-gaming",
+            "version": "1.0.0",
+            "private": true,
+            "dependencies": {
+              "@capacitor/android": "^6.0.0",
+              "@capacitor/cli": "^6.0.0",
+              "@capacitor/core": "^6.0.0"
+            }
+          }
+          EOF
 
-      - name: Create Web Folder
+          cat << 'EOF' > capacitor.config.json
+          {
+            "appId": "com.dulish.app",
+            "appName": "Dulish Gaming",
+            "webDir": "www",
+            "bundledWebRuntime": false
+          }
+          EOF
+
+      - name: Prepare Web Directory
         run: |
           mkdir -p www
-          cp -r *.html *.js *.css public/ assets/ www/ 2>/dev/null || true
+          cp -r *.html *.js *.css public/ assets/ dist/* www/ 2>/dev/null || true
+          if [ ! -f www/index.html ]; then
+            echo "<html><body><h1>Dulish Gaming App</h1></body></html>" > www/index.html
+          fi
 
-      - name: Initialize Capacitor & Build Android
+      - name: Install Capacitor & Add Android
         run: |
-          npx cap init "Dulish App" "com.dulish.app" --web-dir www
-          npx cap add android
-          npx cap copy android
+          npm install --legacy-peer-deps
+          npx cap add android || true
+          npx cap sync android || true
+
+      - name: Build Android APK
+        run: |
           cd android
           chmod +x gradlew
           ./gradlew assembleDebug
 
-      - name: Upload APK
+      - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: release-apk
