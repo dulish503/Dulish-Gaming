@@ -45,24 +45,22 @@ jobs:
           }
           EOF
 
-      - name: Copy All Web Assets Correctly
+      - name: Setup Web Directory
         run: |
-          mkdir -p www
-          # Project ke saare HTML, CSS, JS aur sub-folders copy karo
-          cp -r * www/ 2>/dev/null || true
-          
-          # Agar index.html kisi inner folder me ho toh use root www me le aao
+          mkdir -p temp_www
+          rsync -av --exclude='temp_www' --exclude='.git' --exclude='.github' ./ temp_www/ || true
+          mv temp_www www
           if [ ! -f www/index.html ]; then
-            find www/ -maxdepth 3 -name "index.html" -exec cp {} www/ \;
+            find www/ -name "index.html" -exec cp {} www/ \;
           fi
 
-      - name: Build Android App
+      - name: Install & Add Android
         run: |
           npm install --legacy-peer-deps
           npx cap add android || true
           npx cap copy android
 
-      - name: Build APK File
+      - name: Build Android APK
         run: |
           cd android
           chmod +x gradlew
