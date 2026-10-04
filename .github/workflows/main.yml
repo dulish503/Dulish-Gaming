@@ -45,16 +45,20 @@ jobs:
           }
           EOF
 
-      - name: Setup Web Directory
+      - name: Copy Real Web Files to WWW
         run: |
-          mkdir -p www
-          find . -maxdepth 1 -type f \( -name "*.html" -o -name "*.js" -o -name "*.css" \) -exec cp {} www/ \; 2>/dev/null || true
-          [ -d "public" ] && cp -r public/* www/ 2>/dev/null || true
-          [ -d "assets" ] && cp -r assets/ www/ 2>/dev/null || true
-          [ -d "dist" ] && cp -r dist/* www/ 2>/dev/null || true
-          if [ ! -f www/index.html ]; then
-            echo "<html><head><meta name='viewport' content='width=device-width, initial-scale=1.0'></head><body style='background:#111;color:#fff;display:flex;justify-content:center;align-items:center;height:100vh;'><h1>Dulish Gaming Loaded Successfully!</h1></body></html>" > www/index.html
+          mkdir -p www_temp
+          rsync -av --exclude='.git' --exclude='.github' --exclude='node_modules' ./ www_temp/ || true
+          
+          # Find where index.html is located
+          INDEX_PATH=$(find www_temp -name "index.html" | head -n 1)
+          if [ -n "$INDEX_PATH" ]; then
+            TARGET_DIR=$(dirname "$INDEX_PATH")
+            cp -r "$TARGET_DIR"/* www/
+          else
+            cp -r www_temp/* www/
           fi
+          rm -rf www_temp
 
       - name: Install Dependencies and Sync Capacitor
         run: |
