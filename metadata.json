@@ -1,0 +1,6 @@
+{
+  "name": "Manila Sim",
+  "description": "Philippines virtual Android simulation with en-PH locale, Asia/Manila timezone, mock GPS in Manila (14.5995, 120.9842), and Philippines HTTPS web fetch proxy routing",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
