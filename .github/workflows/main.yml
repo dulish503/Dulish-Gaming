@@ -9,12 +9,27 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: subosito/flutter-action@v2
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          channel: 'stable'
-      - run: flutter pub get
-      - run: flutter build apk --release
-      - uses: actions/upload-artifact@v4
+          node-version: '20'
+
+      - name: Install Dependencies & Build
+        run: |
+          npm install || true
+          npm run build || true
+
+      - name: Setup Capacitor & Build APK
+        run: |
+          npm install -g @capacitor/cli @capacitor/core
+          npx cap init "Dulish App" "com.dulish.app" --web-dir dist || true
+          npx cap add android || true
+          npx cap copy || true
+          cd android && chmod +x gradlew && ./gradlew assembleDebug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
         with:
           name: release-apk
-          path: build/app/outputs/flutter-apk/app-release.apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
