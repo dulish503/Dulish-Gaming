@@ -21,20 +21,22 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Install Dependencies
+      - name: Prepare Web Assets
         run: |
           npm install --legacy-peer-deps || true
+          npm run build || true
+          mkdir -p www
+          cp -r index.html src public dist/* www/ 2>/dev/null || true
 
-      - name: Build Web Assets
+      - name: Install Capacitor Core & Android
         run: |
-          npm run build || mkdir -p www
+          npm install @capacitor/core @capacitor/cli @capacitor/android
 
-      - name: Create Android Project & Build APK
+      - name: Initialize & Build Android Project
         run: |
-          npm install -g @capacitor/cli @capacitor/core
-          npx cap init "Dulish App" "com.dulish.app" --web-dir www || true
+          npx cap init "Dulish App" "com.dulish.app" --web-dir www
           npx cap add android
-          npx cap copy
+          npx cap copy android
           cd android
           chmod +x gradlew
           ./gradlew assembleDebug
