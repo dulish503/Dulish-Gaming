@@ -45,20 +45,16 @@ jobs:
           }
           EOF
 
-      - name: Copy Real Web Files to WWW
+      - name: Copy Web Assets
         run: |
-          mkdir -p www_temp
-          rsync -av --exclude='.git' --exclude='.github' --exclude='node_modules' ./ www_temp/ || true
+          mkdir -p www
+          # Copy all root files and directories except git and node_modules
+          find . -maxdepth 1 -not -name '.' -not -name '.git' -not -name '.github' -not -name 'www' -exec cp -r {} www/ \; 2>/dev/null || true
           
-          # Find where index.html is located
-          INDEX_PATH=$(find www_temp -name "index.html" | head -n 1)
-          if [ -n "$INDEX_PATH" ]; then
-            TARGET_DIR=$(dirname "$INDEX_PATH")
-            cp -r "$TARGET_DIR"/* www/
-          else
-            cp -r www_temp/* www/
+          # If index.html is inside a subfolder, bring it to www root
+          if [ ! -f www/index.html ]; then
+            find www -name "index.html" -exec cp {} www/ \; 2>/dev/null || true
           fi
-          rm -rf www_temp
 
       - name: Install Dependencies and Sync Capacitor
         run: |
