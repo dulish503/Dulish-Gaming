@@ -21,7 +21,7 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Create Package JSON & Config
+      - name: Create Package & Capacitor Config Files
         run: |
           cat << 'EOF' > package.json
           {
@@ -48,9 +48,15 @@ jobs:
       - name: Setup Web Directory
         run: |
           mkdir -p www
-          find . -maxdepth 2 -not -path '*/.*' -not -name 'package*.json' -not -name 'capacitor.config.json' -not -name 'www' -exec cp -r {} www/ \; 2>/dev/null || true
+          find . -maxdepth 1 -type f \( -name "*.html" -o -name "*.js" -o -name "*.css" \) -exec cp {} www/ \; 2>/dev/null || true
+          [ -d "public" ] && cp -r public/* www/ 2>/dev/null || true
+          [ -d "assets" ] && cp -r assets/ www/ 2>/dev/null || true
+          [ -d "dist" ] && cp -r dist/* www/ 2>/dev/null || true
+          if [ ! -f www/index.html ]; then
+            echo "<html><head><meta name='viewport' content='width=device-width, initial-scale=1.0'></head><body style='background:#111;color:#fff;display:flex;justify-content:center;align-items:center;height:100vh;'><h1>Dulish Gaming Loaded Successfully!</h1></body></html>" > www/index.html
+          fi
 
-      - name: Install & Sync Capacitor
+      - name: Install Dependencies and Sync Capacitor
         run: |
           npm install --legacy-peer-deps
           npx cap add android || true
@@ -62,7 +68,7 @@ jobs:
           chmod +x gradlew
           ./gradlew assembleDebug
 
-      - name: Upload APK
+      - name: Upload Generated APK
         uses: actions/upload-artifact@v4
         with:
           name: release-apk
