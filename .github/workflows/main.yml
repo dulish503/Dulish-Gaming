@@ -16,58 +16,95 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      - name: Create Package & Capacitor Config
+      - name: Setup Android Project
         run: |
-          cat << 'EOF' > package.json
-          {
-            "name": "dulish-gaming",
-            "version": "1.0.0",
-            "private": true,
-            "dependencies": {
-              "@capacitor/android": "^6.0.0",
-              "@capacitor/cli": "^6.0.0",
-              "@capacitor/core": "^6.0.0"
-            }
-          }
-          EOF
+          mkdir -p android_app/app/src/main/assets
+          mkdir -p android_app/app/src/main/java/com/dulish/app
+          mkdir -p android_app/gradle/wrapper
 
-          cat << 'EOF' > capacitor.config.json
-          {
-            "appId": "com.dulish.app",
-            "appName": "Dulish Gaming",
-            "webDir": "www",
-            "bundledWebRuntime": false
-          }
-          EOF
-
-      - name: Setup Web Directory
-        run: |
-          mkdir -p temp_www
-          rsync -av --exclude='temp_www' --exclude='.git' --exclude='.github' ./ temp_www/ || true
-          mv temp_www www
-          if [ ! -f www/index.html ]; then
-            find www/ -name "index.html" -exec cp {} www/ \;
+          # Copy Web Content
+          cp -r *.html *.js *.css public/ assets/ dist/* android_app/app/src/main/assets/ 2>/dev/null || true
+          if [ ! -f android_app/app/src/main/assets/index.html ]; then
+            echo "<html><head><meta name='viewport' content='width=device-width, initial-scale=1.0'></head><body style='background:#000;color:#fff;display:flex;justify-content:center;align-items:center;height:100vh;'><h1>Dulish Gaming Loading...</h1></body></html>" > android_app/app/src/main/assets/index.html
           fi
 
-      - name: Install & Add Android
-        run: |
-          npm install --legacy-peer-deps
-          npx cap add android || true
-          npx cap copy android
+          # Root build.gradle
+          cat << 'EOF' > android_app/build.gradle
+          buildscript {
+              repositories { google(); mavenCentral() }
+              dependencies { classpath 'com.android.tools.build:gradle:8.2.0' }
+          }
+          allprojects { repositories { google(); mavenCentral() } }
+          EOF
 
-      - name: Build Android APK
+          # settings.gradle
+          echo "include ':app'" > android_app/settings.gradle
+
+          # App build.gradle
+          cat << 'EOF' > android_app/app/build.gradle
+          plugins { id 'com.android.application' }
+          android {
+              namespace 'com.dulish.app'
+              compileSdk 34
+              defaultConfig {
+                  applicationId "com.dulish.app"
+                  minSdk 21
+                  targetSdk 34
+                  versionCode 1
+                  versionName "1.0"
+              }
+          }
+          EOF
+
+          # AndroidManifest.xml
+          cat << 'EOF' > android_app/app/src/main/AndroidManifest.xml
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+              <uses-permission android:name="android.permission.INTERNET" />
+              <application
+                  android:label="Dulish Gaming"
+                  android:theme="@android:style/Theme.NoTitleBar.Fullscreen">
+                  <activity android:name=".MainActivity" android:exported="true">
+                      <intent-filter>
+                          <action android:name="android.intent.action.MAIN" />
+                          <category android:name="android.intent.category.LAUNCHER" />
+                      </intent-filter>
+                  </activity>
+              </application>
+          </manifest>
+          EOF
+
+          # MainActivity.java
+          cat << 'EOF' > android_app/app/src/main/java/com/dulish.app/MainActivity.java
+          package com.dulish.app;
+          import android.app.Activity;
+          import android.os.Bundle;
+          import android.webkit.WebView;
+          import android.webkit.WebViewClient;
+          import android.webkit.WebSettings;
+
+          public class MainActivity extends Activity {
+              @Override
+              protected void onCreate(Bundle savedInstanceState) {
+                  super.onCreate(savedInstanceState);
+                  WebView webView = new WebView(this);
+                  WebSettings settings = webView.getSettings();
+                  settings.setJavaScriptEnabled(true);
+                  settings.setDomStorageEnabled(true);
+                  settings.setAllowFileAccess(true);
+                  webView.setWebViewClient(new WebViewClient());
+                  webView.loadUrl("file:///android_asset/index.html");
+                  setContentView(webView);
+              }
+          }
+          EOF
+
+      - name: Build Debug APK
         run: |
-          cd android
-          chmod +x gradlew
-          ./gradlew assembleDebug
+          cd android_app
+          gradle assembleDebug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: release-apk
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          path: android_app/app/build/outputs/apk/debug/app-debug.apk
