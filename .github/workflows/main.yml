@@ -21,18 +21,17 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Prepare Web Assets
+      - name: Create Package JSON & Install Capacitor
         run: |
-          npm install --legacy-peer-deps || true
-          npm run build || true
-          mkdir -p www
-          cp -r index.html src public dist/* www/ 2>/dev/null || true
-
-      - name: Install Capacitor Core & Android
-        run: |
+          npm init -y
           npm install @capacitor/core @capacitor/cli @capacitor/android
 
-      - name: Initialize & Build Android Project
+      - name: Create Web Folder
+        run: |
+          mkdir -p www
+          cp -r *.html *.js *.css public/ assets/ www/ 2>/dev/null || true
+
+      - name: Initialize Capacitor & Build Android
         run: |
           npx cap init "Dulish App" "com.dulish.app" --web-dir www
           npx cap add android
