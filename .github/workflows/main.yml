@@ -16,60 +16,14 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      - name: Create Package & Capacitor Config Files
-        run: |
-          cat << 'EOF' > package.json
-          {
-            "name": "dulish-gaming",
-            "version": "1.0.0",
-            "private": true,
-            "dependencies": {
-              "@capacitor/android": "^6.0.0",
-              "@capacitor/cli": "^6.0.0",
-              "@capacitor/core": "^6.0.0"
-            }
-          }
-          EOF
-
-          cat << 'EOF' > capacitor.config.json
-          {
-            "appId": "com.dulish.app",
-            "appName": "Dulish Gaming",
-            "webDir": "www",
-            "bundledWebRuntime": false
-          }
-          EOF
-
-      - name: Copy Web Assets
-        run: |
-          mkdir -p www
-          # Copy all root files and directories except git and node_modules
-          find . -maxdepth 1 -not -name '.' -not -name '.git' -not -name '.github' -not -name 'www' -exec cp -r {} www/ \; 2>/dev/null || true
-          
-          # If index.html is inside a subfolder, bring it to www root
-          if [ ! -f www/index.html ]; then
-            find www -name "index.html" -exec cp {} www/ \; 2>/dev/null || true
-          fi
-
-      - name: Install Dependencies and Sync Capacitor
-        run: |
-          npm install --legacy-peer-deps
-          npx cap add android || true
-          npx cap copy android
+      - name: Make Gradle Executable
+        run: chmod +x gradlew || true
 
       - name: Build Android APK
-        run: |
-          cd android
-          chmod +x gradlew
-          ./gradlew assembleDebug
+        run: ./gradlew assembleDebug
 
-      - name: Upload Generated APK
+      - name: Upload Generated APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: release-apk
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          path: app/build/outputs/apk/debug/app-debug.apk
